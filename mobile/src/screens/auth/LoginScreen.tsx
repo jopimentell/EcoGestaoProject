@@ -1,0 +1,229 @@
+import React, { useRef, useEffect, useState } from 'react';
+import {
+  View, Text, TextInput, StyleSheet, Pressable,
+  Animated, Easing, ActivityIndicator, KeyboardAvoidingView,
+  Platform, ScrollView, Alert,
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useAuth } from '../../context/AuthContext';
+import { BeamButton } from '../../components/BeamButton';
+import { theme as staticTheme } from '../../theme/tokens';
+import { AuthStackParamList } from '../../navigation/AuthNavigator';
+import { useTheme } from '../../context/ThemeContext';
+
+type Props = { navigation: NativeStackNavigationProp<AuthStackParamList, 'Login'> };
+
+// ── Animated input field ───────────────────────────────────────────────────────
+function Field({
+  label, placeholder, value, onChangeText, secure = false, keyboardType = 'default', theme
+}: {
+  label: string; placeholder: string; value: string;
+  onChangeText: (v: string) => void; secure?: boolean; keyboardType?: any; theme: any;
+}) {
+  const borderColor = useRef(new Animated.Value(0)).current;
+  const [showPwd, setShowPwd] = useState(false);
+
+  const animIn  = () => Animated.timing(borderColor, { toValue: 1, duration: 200, useNativeDriver: false }).start();
+  const animOut = () => Animated.timing(borderColor, { toValue: 0, duration: 200, useNativeDriver: false }).start();
+
+  const border = borderColor.interpolate({ inputRange: [0, 1], outputRange: [theme.colors.border, theme.colors.primary] });
+
+  return (
+    <View style={styles.fieldWrapper}>
+      <Text style={[styles.fieldLabel, { color: theme.colors.textSecondary }]}>{label}</Text>
+      <Animated.View style={[styles.fieldBox, { backgroundColor: theme.colors.surface2, borderColor: border }]}>
+        <TextInput
+          style={[styles.fieldInput, { color: theme.colors.textPrimary }]}
+          placeholder={placeholder}
+          placeholderTextColor={theme.colors.textMuted}
+          value={value}
+          onChangeText={onChangeText}
+          secureTextEntry={secure && !showPwd}
+          keyboardType={keyboardType}
+          autoCapitalize="none"
+          onFocus={animIn}
+          onBlur={animOut}
+        />
+        {secure && (
+          <Pressable onPress={() => setShowPwd(!showPwd)} style={styles.eyeBtn}>
+            <Feather name={showPwd ? 'eye-off' : 'eye'} size={18} color={theme.colors.textMuted} />
+          </Pressable>
+        )}
+      </Animated.View>
+    </View>
+  );
+}
+
+// ── Screen ────────────────────────────────────────────────────────────────────
+export function LoginScreen({ navigation }: Props) {
+  const { login } = useAuth();
+  const { theme, isDark } = useTheme();
+  const [email, setEmail]     = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError]     = useState('');
+
+  // Fade-in entrance
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim,  { toValue: 1, duration: 700, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 700, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+    ]).start();
+  }, [fadeAnim, slideAnim]);
+
+  const handleLogin = async () => {
+    if (!email || !password) { setError('Preencha e-mail e senha.'); return; }
+    setLoading(true);
+    setError('');
+    const err = await login(email, password);
+    setLoading(false);
+    if (err) setError(err);
+  };
+
+  return (
+    <SafeAreaView style={styles.safe}>
+      <LinearGradient colors={[theme.colors.surface1, theme.colors.background]} style={StyleSheet.absoluteFillObject} />
+      <LinearGradient colors={['rgba(249,115,22,0.10)', 'transparent']} style={styles.glow} />
+
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          <Animated.View style={[styles.container, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+
+            {/* Logo / brand */}
+            <View style={styles.brand}>
+              <View style={[styles.logoCircle, { backgroundColor: theme.colors.primary + '15', borderColor: theme.colors.primary + '44' }]}>
+                <Feather name="map-pin" size={32} color={theme.colors.primary} />
+              </View>
+              <Text style={[styles.logoTitle, { color: theme.colors.textPrimary }]}>EcoGestão</Text>
+              <Text style={[styles.logoSub, { color: theme.colors.textSecondary }]}>Conecte-se para contribuir</Text>
+            </View>
+
+            {/* Card */}
+            <View style={[styles.card, { backgroundColor: theme.colors.surface1, borderColor: theme.colors.border }]}>
+              <Text style={[styles.cardTitle, { color: theme.colors.textPrimary }]}>Entrar na conta</Text>
+
+              <Field
+                label="E-mail"
+                placeholder="seu@email.com"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                theme={theme}
+              />
+              <Field
+                label="Senha"
+                placeholder="••••••••"
+                value={password}
+                onChangeText={setPassword}
+                secure
+                theme={theme}
+              />
+
+              {!!error && (
+                <View style={[styles.errorBox, { backgroundColor: isDark ? 'rgba(239,68,68,0.15)' : 'rgba(239,68,68,0.05)' }]}>
+                  <Feather name="alert-circle" size={14} color="#EF4444" style={{ marginRight: 8 }} />
+                  <Text style={styles.errorText}>{error}</Text>
+                </View>
+              )}
+
+              <BeamButton
+                title={loading ? 'Entrando...' : 'Entrar'}
+                isPrimary
+                iconRight={loading ? undefined : 'log-in'}
+                style={styles.submitBtn}
+                onPress={handleLogin}
+              />
+              {loading && <ActivityIndicator color={theme.colors.primary} style={{ marginTop: 8 }} />}
+            </View>
+
+            {/* Divider */}
+            <View style={styles.dividerRow}>
+              <View style={[styles.dividerLine, { backgroundColor: theme.colors.border }]} />
+              <Text style={[styles.dividerText, { color: theme.colors.textMuted }]}>ou</Text>
+              <View style={[styles.dividerLine, { backgroundColor: theme.colors.border }]} />
+            </View>
+
+            {/* Register link */}
+            <Pressable onPress={() => navigation.navigate('Register')} style={styles.registerLink}>
+              <Text style={[styles.registerText, { color: theme.colors.textSecondary }]}>
+                Não tem conta?{' '}
+                <Text style={[styles.registerHighlight, { color: theme.colors.primary }]}>Criar conta gratuita</Text>
+              </Text>
+              <Feather name="arrow-right" size={14} color={theme.colors.primary} style={{ marginLeft: 4 }} />
+            </Pressable>
+
+          </Animated.View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+}
+
+// ── Styles ────────────────────────────────────────────────────────────────────
+const styles = StyleSheet.create({
+  safe:     { flex: 1, backgroundColor: staticTheme.colors.background },
+  glow:     { position: 'absolute', top: -50, left: '5%', width: '90%', height: 350, borderRadius: 200 },
+  scroll:   { flexGrow: 1, justifyContent: 'center', padding: staticTheme.spacing.lg },
+  
+  container: { 
+    gap: staticTheme.spacing.lg,
+    width: '100%',          // 👈 NOVO: Ocupa 100% da tela no celular
+    maxWidth: 900,          // 👈 NOVO: Limita a 900px no navegador
+    alignSelf: 'center',    // 👈 NOVO: Centraliza o container na tela do PC
+  },
+
+  brand: { 
+    alignItems: 'center', 
+    gap: 8,
+    width: '100%',          // 👈 NOVO
+    maxWidth: 480,          // 👈 NOVO: Evita que a logo fique perdida em telas grandes
+    alignSelf: 'center',    // 👈 NOVO
+  },
+  logoCircle:  { width: 72, height: 72, borderRadius: 36, backgroundColor: 'rgba(249,115,22,0.12)', borderWidth: 1.5, borderColor: 'rgba(249,115,22,0.4)', justifyContent: 'center', alignItems: 'center' },
+  logoTitle:   { fontSize: 24, color: staticTheme.colors.textPrimary, fontFamily: staticTheme.typography.fontFamily.semiBold },
+  logoSub:     { fontSize: 13, color: staticTheme.colors.textSecondary, fontFamily: staticTheme.typography.fontFamily.regular },
+
+  card: { 
+    backgroundColor: staticTheme.colors.surface1, 
+    borderRadius: staticTheme.radii.xl, 
+    padding: staticTheme.spacing.lg, 
+    borderWidth: 1, 
+    borderColor: staticTheme.colors.border, 
+    gap: staticTheme.spacing.md,
+    width: '100%',          // 👈 NOVO
+    maxWidth: 480,          // 👈 NOVO: Formulário fica elegante (estilo SaaS) e não estica demais
+    alignSelf: 'center',    // 👈 NOVO
+  },
+  cardTitle:   { fontSize: 18, color: staticTheme.colors.textPrimary, fontFamily: staticTheme.typography.fontFamily.semiBold, marginBottom: 4 },
+
+  fieldWrapper:{ gap: 6 },
+  fieldLabel:  { fontSize: 12, color: staticTheme.colors.textSecondary, fontFamily: staticTheme.typography.fontFamily.medium, textTransform: 'uppercase', letterSpacing: 0.5 },
+  fieldBox:    { flexDirection: 'row', alignItems: 'center', backgroundColor: staticTheme.colors.surface2, borderRadius: staticTheme.radii.md, borderWidth: 1.5, paddingHorizontal: staticTheme.spacing.md },
+  fieldInput:  { flex: 1, color: staticTheme.colors.textPrimary, fontSize: 15, fontFamily: staticTheme.typography.fontFamily.regular, paddingVertical: 13 },
+  eyeBtn:      { padding: 4 },
+
+  errorBox:    { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(239,68,68,0.1)', borderRadius: staticTheme.radii.md, borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)', padding: staticTheme.spacing.sm },
+  errorText:   { color: '#EF4444', fontSize: 13, fontFamily: staticTheme.typography.fontFamily.regular, flex: 1 },
+
+  submitBtn:   { marginTop: 4 },
+
+  dividerRow:  { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    gap: staticTheme.spacing.sm,
+    width: '100%',          // 👈 NOVO
+    maxWidth: 480,          // 👈 NOVO
+    alignSelf: 'center',    // 👈 NOVO
+  },
+  dividerLine: { flex: 1, height: 1, backgroundColor: staticTheme.colors.border },
+  dividerText: { color: staticTheme.colors.textMuted, fontSize: 12, fontFamily: staticTheme.typography.fontFamily.regular },
+
+  registerLink:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+  registerText:   { color: staticTheme.colors.textSecondary, fontSize: 14, fontFamily: staticTheme.typography.fontFamily.regular },
+  registerHighlight: { color: staticTheme.colors.primary, fontFamily: staticTheme.typography.fontFamily.semiBold },
+});
