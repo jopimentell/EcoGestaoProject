@@ -1,11 +1,11 @@
-# Sistema de Mapeamento de Denúncias Urbanos
-Aplicativo colaborativo para reporte de problemas de infraestrutura urbana
+# EcoGestão
+Aplicativo colaborativo para registro de descartes irregulares e pontos de coleta
 
 ---
 
 ## Sobre o Projeto
 
-Aplicativo mobile que permite cidadãos reportarem Denúncias e problemas no asfalto de forma colaborativa, conectando população e poder público com acompanhamento em tempo real.
+Aplicativo mobile e web que permite cidadãos registrarem ocorrências de descarte irregular, descobrirem onde descartar e acompanharem a comunidade em Caxias - MA, conectando população e poder público com acompanhamento em tempo real.
 
 ### 🎯 Objetivos Acadêmicos
 
@@ -41,10 +41,10 @@ Aplicativo mobile que permite cidadãos reportarem Denúncias e problemas no asf
 
 ### Mapa e Comunidade
 
-| Mapa de Denúncias | Feed da Comunidade |
+| Mapa de Ocorrências | Feed da Comunidade |
 |:---------------:|:------------------:|
 | ![Mapa com Marcadores](mobile/assets/screenshots/map-screen.png) | ![Feed de Reportes](mobile/assets/screenshots/feed-screen.png) |
-| Visualização geolocalizada dos Denúncias com marcadores coloridos | Listagem de reportes com votos, comentários e status |
+| Visualização geolocalizada das ocorrências com marcadores coloridos | Listagem de reportes com votos, comentários e status |
 
 ---
 
@@ -59,7 +59,7 @@ Aplicativo mobile que permite cidadãos reportarem Denúncias e problemas no asf
 
 ### Telas Complementares
 
-| Tela de Reporte | Detalhes do Denúncia |
+| Tela de Reporte | Detalhes da Ocorrência |
 |:---------------:|:------------------:|
 | ![Formulário de Reporte](mobile/assets/screenshots/report-screen.png) | ![Detalhes do Reporte](mobile/assets/screenshots/report-detail-screen.png) |
 | Formulário para novo reporte com upload de imagens | Visualização detalhada com comentários e ações de admin |
@@ -92,8 +92,8 @@ Aplicativo mobile que permite cidadãos reportarem Denúncias e problemas no asf
 | Camada | Tecnologia | Finalidade |
 |--------|------------|------------|
 | **Frontend** | React Native + Expo | Framework mobile |
-| | Expo Router | Navegação entre telas |
-| | NativeWind (Tailwind) | Estilização e temas |
+| | React Navigation | Navegação entre telas |
+| | Design System próprio (`src/theme`) | Estilização e temas |
 | | Leaflet + WebView | Mapas interativos |
 | **Backend** | Supabase | Backend as a Service |
 | | PostgreSQL 15 | Banco de dados relacional |
@@ -105,7 +105,7 @@ Aplicativo mobile que permite cidadãos reportarem Denúncias e problemas no asf
 ## 📂 Estrutura do Projeto
 
 ```
-EcoGestão2.0/
+EcoGestaoProject/
 ├── mobile/                              # Frontend React Native
 │   ├── assets/
 │   │   └── screenshots/                 # 📸 Imagens da documentação
@@ -119,15 +119,18 @@ EcoGestão2.0/
 │   │       └── report-detail-screen.png
 │   ├── src/
 │   │   ├── screens/                     # Telas do aplicativo
-│   │   │   ├── HomeScreen.tsx           # Mapa + lista de Denúncias
+│   │   │   ├── HomeScreen.tsx           # Mapa + lista de ocorrências
 │   │   │   ├── ReportScreen.tsx         # Formulário de reporte
 │   │   │   ├── FeedScreen.tsx           # Comunidade (comentários)
 │   │   │   ├── ProfileScreen.tsx        # Perfil + conquistas
-│   │   │   ├── LoginScreen.tsx          # Autenticação
-│   │   │   └── ReportDetailScreen.tsx   # Detalhes do Denúncia
+│   │   │   ├── DropOffScreen.tsx        # Onde descartar
+│   │   │   ├── DropOffDetailScreen.tsx  # Detalhe do ponto de coleta
+│   │   │   ├── auth/                    # Login e cadastro
+│   │   │   └── ReportDetailScreen.tsx   # Detalhes da ocorrência
 │   │   ├── context/                     # Estado global
 │   │   │   ├── AuthContext.tsx          # Autenticação
 │   │   │   ├── ReportsContext.tsx       # Gestão de reportes
+│   │   │   ├── DropOffContext.tsx       # Pontos de coleta
 │   │   │   └── ThemeContext.tsx         # Tema claro/escuro
 │   │   ├── components/                  # Componentes reutilizáveis
 │   │   │   ├── UserAvatar.tsx
@@ -151,10 +154,11 @@ EcoGestão2.0/
 | Tabela | Descrição | Campos Principais |
 |--------|-----------|-------------------|
 | `profiles` | Perfis de usuário | id, name, handle, role |
-| `reports` | Reportes de Denúncias | id, street, description, severity, status, votes |
+| `reports` | Ocorrências de descarte irregular | id, street, description, severity, status, votes |
 | `report_images` | Imagens dos reportes | id, report_id, image_url |
 | `votes` | Votos dos usuários | user_id, report_id |
 | `comments` | Comentários | id, report_id, user_id, content |
+| `drop_off_points` | Pontos de coleta | id, name, address, latitude, longitude |
 
 ### Segurança (RLS)
 
@@ -171,7 +175,7 @@ EcoGestão2.0/
 - Sessão persistente
 - Diferenciação usuário comum / administrador
 
-### Reporte de Denúncias
+### Reporte de Ocorrências
 - Captura de localização (GPS ou toque no mapa)
 - Upload de até 3 imagens
 - Seleção de gravidade (Baixa/Média/Alta/Crítica)
@@ -216,8 +220,8 @@ EcoGestão2.0/
 
 ```bash
 # 1. Clonar o repositório
-git clone https://github.com/ThiagoLachowski/EcoGestão2.0.git
-cd EcoGestão2.0
+git clone https://github.com/jopimentell/EcoGestaoProject.git
+cd EcoGestaoProject
 
 # 2. Instalar dependências
 cd mobile
@@ -272,4 +276,4 @@ WHERE id = (SELECT id FROM auth.users WHERE email = 'admin@exemplo.com');
 
 ---
 
-**Repositório:** [github.com/ThiagoLachowski/EcoGestão2.0](https://github.com/ThiagoLachowski/EcoGestão2.0)
+**Repositório:** [github.com/jopimentell/EcoGestaoProject](https://github.com/jopimentell/EcoGestaoProject)
